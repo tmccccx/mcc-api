@@ -53,7 +53,7 @@ export default async function NFT(
         res.json({
           name: `MCC Node (${chainName}) #${tokenId}`,
           description: `Passive income utility that is transferrable, tradeable, and flexible in nature.`,
-          image: `ipfs://Qmdefu1DzQ4CDjabnxnhjBYBNWTd9onAgv8Kf4bX6SMrQf/${tier.id}.png`,
+          image: `ipfs://Qmdefu1DzQ4CDjabnxnhjBYBNWTd9onAgv8Kf4bX6SMrQf/${tier.id}.mp4`,
           edition: tokenId,
           date: new BigNumber(mintedAt).times(1000).toNumber(),
           attributes: [
