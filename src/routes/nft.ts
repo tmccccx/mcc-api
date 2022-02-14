@@ -7,7 +7,7 @@ import MCCNode from "../libs/MCCNode";
 
 assert(process.env.INFURA_API_KEY, "No Infura API key for ETH mainnet");
 
-const bscNodeContract = "0x855e8d46472932dE5F2C935D8Ac8617A593081DD";
+const bscNodeContract = "0xA1717799b06a018A431C8732Ee21B09fbcFF6EFB";
 const ethNodeContract = "ETH_NODES_CONTRACT";
 
 export default async function NFT(
