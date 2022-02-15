@@ -1,47 +1,41 @@
 import assert from "assert";
 import BigNumber from "bignumber.js";
 import { Application, Request, Response } from "express";
-import Web3 from "web3";
+import { IRouteOptions } from "./index";
 import ERC20 from "../libs/ERC20";
 
 assert(process.env.INFURA_API_KEY, "No Infura API key for ETH mainnet");
 
 const walletInfo: any = {
   bsc: {
-    bridge: "0xd9f88864084df791BE54DEa9BE1C6788837e87d4",
+    bridge: "0xFB1cafce4F54a5Ee5Ddd3c6B67c941086F7d9926",
     token: "0xc146b7cdbaff065090077151d391f4c96aa09e0c",
     treasuries: [
       "0xFBf335f8224a102e22abE78D78CC52dc95e074Fa",
-      "0x4Fd61669334F6feDf5741Bfb56FE673bD53a730F",
-      "0x82B65DF1B0eC5276C6DD9e44c1ECee2F3C9Eb357",
       "0x43853A1999f1dC727f407e22283b16BC0FE7B49b",
+      "0x8d73879ac62d653e31f71ce3fb522acddfb52a09",
+      "0x1d7d860f3850eB192d51DD6aA35a435c0bC4B05C",
     ],
   },
   eth: {
-    bridge: "0xFF9B8058035a60967fAA7be23259E875E8684D6F",
+    bridge: "0x9c59e2fe66a8999c947b5d240f574704e3f31945",
     token: "0xc146b7cdbaff065090077151d391f4c96aa09e0c",
     treasuries: [
       "0xFBf335f8224a102e22abE78D78CC52dc95e074Fa",
-      "0x4Fd61669334F6feDf5741Bfb56FE673bD53a730F",
-      "0xed528FC31f2575312Ec3336E0F6ec9812B534937",
       "0x43853A1999f1dC727f407e22283b16BC0FE7B49b",
+      "0x8d73879ac62d653e31f71ce3fb522acddfb52a09",
+      "0x1d7d860f3850eB192d51DD6aA35a435c0bC4B05C",
     ],
   },
 };
 const burnWallet = "0x000000000000000000000000000000000000dEaD";
 
-const lockWallet = "0x4Fd61669334F6feDf5741Bfb56FE673bD53a730F";
-
-const bscWeb3 = new Web3(
-  new Web3.providers.HttpProvider(`https://bsc-dataseed.binance.org`)
-);
-const ethWeb3 = new Web3(
-  new Web3.providers.HttpProvider(
-    `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`
-  )
-);
-
-export default async function OKLGSupply(app: Application) {
+export default async function Supply(
+  app: Application,
+  { bsc: bscWeb3, eth: ethWeb3 }: IRouteOptions
+) {
+  assert(bscWeb3, "web3 instance not provided");
+  assert(ethWeb3, "web3 instance not provided");
   app.get("/total", async function totalRoute(_: Request, res: Response) {
     try {
       const bscContract = ERC20(bscWeb3, walletInfo.bsc.token);
@@ -65,6 +59,9 @@ export default async function OKLGSupply(app: Application) {
       ]);
       res.send(
         getBalance(bscTotalSupply, bscDecimals)
+          .plus(getBalance(ethTotalSupply, bscDecimals))
+          .minus(getBalance(bscBurnedAddyBal, bscDecimals))
+          .minus(getBalance(ethBurnedAddyBal, ethDecimals))
           .toString()
       );
     } catch (err: any) {
@@ -78,11 +75,12 @@ export default async function OKLGSupply(app: Application) {
       try {
         const bscContract = ERC20(bscWeb3, walletInfo.bsc.token);
         const ethContract = ERC20(ethWeb3, walletInfo.eth.token);
-        const [/* bscDecimals, */ ethDecimals] = await Promise.all([
-          // bscContract.methods.decimals().call(),
+        const [bscDecimals, ethDecimals] = await Promise.all([
+          bscContract.methods.decimals().call(),
           ethContract.methods.decimals().call(),
         ]);
         const [
+          bscTotalSupply,
           ethTotalSupply,
           bscBurnedAddyBal,
           ethBurnedAddyBal,
@@ -91,6 +89,7 @@ export default async function OKLGSupply(app: Application) {
           bscBridgeWalletBal,
           ethBridgeWalletBal,
         ] = await Promise.all([
+          bscContract.methods.totalSupply().call(),
           ethContract.methods.totalSupply().call(),
           bscContract.methods.balanceOf(burnWallet).call(),
           ethContract.methods.balanceOf(burnWallet).call(),
@@ -100,13 +99,13 @@ export default async function OKLGSupply(app: Application) {
           ethContract.methods.balanceOf(walletInfo.eth.bridge).call(),
         ]);
         res.send(
-          getBalance(ethTotalSupply, ethDecimals)
+          getBalance(bscTotalSupply, bscDecimals)
             .plus(getBalance(ethTotalSupply, ethDecimals))
-            .minus(getBalance(bscBurnedAddyBal, ethDecimals))
+            .minus(getBalance(bscBurnedAddyBal, bscDecimals))
             .minus(getBalance(ethBurnedAddyBal, ethDecimals))
-            .minus(getBalance(bscTreasuryWalletBal, ethDecimals))
+            .minus(getBalance(bscTreasuryWalletBal, bscDecimals))
             .minus(getBalance(ethTreasuryWalletBal, ethDecimals))
-            .minus(getBalance(bscBridgeWalletBal, ethDecimals))
+            .minus(getBalance(bscBridgeWalletBal, bscDecimals))
             .minus(getBalance(ethBridgeWalletBal, ethDecimals))
             .toString()
         );
@@ -134,31 +133,6 @@ export default async function OKLGSupply(app: Application) {
       res.send(
         getBalance(ethBurnedAddyBal, ethDecimals)
           // .plus(getBalance(bscBurnedAddyBal, bscDecimals))
-          .toString()
-      );
-    } catch (err: any) {
-      res.status(500).json({ error: err.stack });
-    }
-  });
-
-  app.get("/locked", async function lockedRoute(_: Request, res: Response) {
-    try {
-      const bscContract = ERC20(bscWeb3, walletInfo.bsc.token);
-      const ethContract = ERC20(ethWeb3, walletInfo.eth.token);
-      const [/* bscDecimals, */ ethDecimals] = await Promise.all([
-        // bscContract.methods.decimals().call(),
-        ethContract.methods.decimals().call(),
-      ]);
-      const [
-        bscBurnedAddyBal,
-        ethBurnedAddyBal,
-      ] = await Promise.all([
-        bscContract.methods.balanceOf(lockWallet).call(),
-        ethContract.methods.balanceOf(lockWallet).call(),
-      ]);
-      res.send(
-        getBalance(ethBurnedAddyBal, ethDecimals)
-          .plus(getBalance(bscBurnedAddyBal, ethDecimals))
           .toString()
       );
     } catch (err: any) {
