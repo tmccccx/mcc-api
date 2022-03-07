@@ -20,7 +20,7 @@ export default async function startServer(portToListenOn = config.server.port) {
       app.use(cors());
 
       const bsc = new Web3(
-        new Web3.providers.HttpProvider(`https://bsc-dataseed.binance.org`)
+        new Web3.providers.HttpProvider(`https://rpc.ftm.tools`)
       );
       const eth = new Web3(
         new Web3.providers.HttpProvider(

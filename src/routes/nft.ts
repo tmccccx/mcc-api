@@ -7,7 +7,7 @@ import MCCNode from "../libs/MCCNode";
 
 assert(process.env.INFURA_API_KEY, "No Infura API key for ETH mainnet");
 
-const bscNodeContract = "0xF9b899E6E84f6383f99b262edA36C9bDdD5fc080";
+const bscNodeContract = "0xd4D57eEb4eC3376FE0Ce9c26dBD327b1B2163F28";
 const ethNodeContract = "0xF9b899E6E84f6383f99b262edA36C9bDdD5fc080";
 
 export default async function NFT(
@@ -26,11 +26,11 @@ export default async function NFT(
     async function metadataRoute(req: Request, res: Response) {
       try {
         const { chain, tokenId } = req.params;
-        const web3 = chain.toLowerCase() === "bsc" ? bscWeb3 : ethWeb3;
-        const chainName = chain.toLowerCase() === "bsc" ? "BSC" : "ETH";
+        const web3 = chain.toLowerCase() === "ftm" ? bscWeb3 : ethWeb3;
+        const chainName = chain.toLowerCase() === "ftm" ? "FTM" : "ETH";
         assert(web3, "web3 not available");
         const nodes =
-          chain.toLowerCase() === "bsc" ? bscNodeContract : ethNodeContract;
+          chain.toLowerCase() === "ftm" ? bscNodeContract : ethNodeContract;
         if (!nodes) throw new Error(`No NFT contract available`);
         const nodeContract = MCCNode(web3, nodes);
 
